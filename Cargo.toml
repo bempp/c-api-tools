@@ -1,0 +1,42 @@
+
+workspace = { members = ["c-api-tools-macros", "example_project"] }
+
+[features]
+strict = []
+
+[package]
+name = "c-api-tools"
+version = "0.1.0-dev"
+edition = "2021"
+authors = [
+    "Timo Betcke <timo.betcke@gmail.com>",
+    "Matthew Scroggs <rust@mscroggs.co.uk>",
+]
+description = "Tools for the creation of C API bindings."
+license = "BSD-3-Clause"
+homepage = "https://github.com/bempp/c-api-tools"
+repository = "https://github.com/bempp/c-api-tools"
+readme = "README.md"
+keywords = ["numerics"]
+categories = ["mathematics", "science"]
+
+[lib]
+name = "c_api_tools"
+crate-type = ["lib", "cdylib"]
+
+[dependencies]
+itertools = "0.13.*"
+num = "0.4"
+c-api-tools-macros = { path = "./c-api-tools-macros" }
+
+[dev-dependencies]
+paste = "1.*"
+
+[build-dependencies]
+cbindgen = "0.27.0"
+
+[package.metadata.docs.rs]
+cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]
+
+[lints.clippy]
+wildcard_imports = "forbid"
