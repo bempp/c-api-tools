@@ -3,4 +3,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-void hello_world(void);
+typedef struct MyWrapper MyWrapper;
+
+struct MyWrapper *my_wrapper_create(void);
+
+void my_wrapper_free(struct MyWrapper *ptr);

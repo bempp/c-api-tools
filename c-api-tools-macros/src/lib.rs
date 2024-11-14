@@ -1,7 +1,7 @@
-mod derive_c_wrappers;
+mod attribute_c_wrappers;
 mod eval_concrete_type;
 
-use derive_c_wrappers::c_wrapper_impl;
+use attribute_c_wrappers::c_wrapper_impl;
 use eval_concrete_type::eval_with_concrete_type_impl;
 use proc_macro::TokenStream;
 
