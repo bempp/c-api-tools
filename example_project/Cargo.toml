@@ -13,6 +13,7 @@ crate-type = ["lib", "cdylib"]
 
 [dependencies]
 c-api-tools = { path = "../" }
+num = "0.4"
 
 [build-dependencies]
 cbindgen = "0.27"
