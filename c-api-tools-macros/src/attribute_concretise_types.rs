@@ -9,15 +9,15 @@ use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::token::Mut;
 use syn::{
-    parse_macro_input, FnArg, LitStr, Pat, PatIdent, Path, Signature, Token, Type, TypePath,
-    TypePtr,
+    parse_macro_input, Expr, ExprCall, FnArg, LitStr, Pat, PatIdent, PatPath, Path, Signature,
+    Token, Type, TypePath, TypePtr,
 };
 use syn::{Ident, PatType};
 
-fn replace_templates_with_types(names: &Vec<String>, templates: &Vec<String>) -> Vec<String> {
+fn replace_templates_with_types(names: &[String], templates: &[String]) -> Vec<String> {
     let ntypes = templates.len();
 
-    let mut complete_types = templates.clone();
+    let mut complete_types = templates.to_vec();
 
     for index in 0..ntypes - 1 {
         let replace_type = complete_types[index].clone();
@@ -61,10 +61,31 @@ fn create_ptr_argument(var_name: &str, ptr_type: &str) -> PatType {
     }
 }
 
-fn create_signature(
-    replace_args: &HashMap<usize, PatType>,
-    old_signature: &Signature,
-) -> Signature {
+fn function_arg_is_mutable(arg: &FnArg) -> bool {
+    if let FnArg::Typed(arg) = arg {
+        if let Type::Reference(ty) = arg.ty.as_ref() {
+            ty.mutability.is_some()
+        } else {
+            panic!("Type to replace must be a reference type.")
+        }
+    } else {
+        panic!("Argument must be typed.");
+    }
+}
+
+fn get_function_arg_ident(arg: &FnArg) -> &Ident {
+    if let FnArg::Typed(arg) = arg {
+        if let Pat::Ident(pat_ident) = arg.pat.as_ref() {
+            &pat_ident.ident
+        } else {
+            panic!("Pattern must describe an identifier.");
+        }
+    } else {
+        panic!("Argument must be typed.");
+    }
+}
+
+fn create_signature(args: &ConcretiseTypeArgs, old_signature: &Signature) -> Signature {
     let Signature {
         ident,
         mut inputs,
@@ -72,12 +93,14 @@ fn create_signature(
         ..
     } = old_signature.clone();
 
-    for (arg_nr, pat) in replace_args.iter() {
+    for field in args.field.iter() {
         let arg = inputs
-            .get_mut(*arg_nr)
-            .expect(&format!("Argument {} does not exist.", arg_nr));
+            .get_mut(field.arg)
+            .expect(&format!("Argument {} does not exist.", field.arg));
 
-        *arg = FnArg::Typed(pat.clone());
+        let ident = get_function_arg_ident(arg);
+
+        *arg = FnArg::Typed(create_ptr_argument(&ident.to_string(), &field.wrapper));
     }
 
     Signature {
@@ -89,12 +112,62 @@ fn create_signature(
             name: Some(LitStr::new("C", Span::call_site())),
         }),
         fn_token: Default::default(),
-        ident: Ident::new(&("c_".to_owned() + &ident.to_string()), Span::call_site()),
+        ident,
+        // ident: Ident::new(&("c_".to_owned() + &ident.to_string()), Span::call_site()),
         generics: Default::default(),
         paren_token: Default::default(),
         inputs,
         variadic: None,
         output,
+    }
+}
+
+fn create_function_call(sig: &Signature) -> ExprCall {
+    // We go through the signature and build from it a function call sequence.
+
+    let mut punctuated = Punctuated::<Expr, Token![,]>::new();
+    let paren = sig.paren_token;
+    // The following creates the function name
+    let func = Box::new(Expr::Path(syn::ExprPath {
+        path: Path {
+            leading_colon: None,
+            segments: {
+                let mut punctuated = Punctuated::new();
+                punctuated.push(syn::PathSegment {
+                    ident: sig.ident.clone(),
+                    arguments: syn::PathArguments::None,
+                });
+                punctuated
+            },
+        },
+        attrs: Default::default(),
+        qself: None,
+    }));
+
+    // This creates the arguments
+    for arg in sig.inputs.iter() {
+        punctuated.push(Expr::Path(syn::ExprPath {
+            path: Path {
+                leading_colon: None,
+                segments: {
+                    let mut punctuated = Punctuated::new();
+                    punctuated.push(syn::PathSegment {
+                        ident: get_function_arg_ident(arg).clone(),
+                        arguments: syn::PathArguments::None,
+                    });
+                    punctuated
+                },
+            },
+            attrs: Default::default(),
+            qself: None,
+        }));
+    }
+
+    ExprCall {
+        attrs: Default::default(),
+        func,
+        paren_token: paren,
+        args: punctuated,
     }
 }
 
@@ -147,14 +220,33 @@ pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> Toke
         }
     };
 
-    let ConcretiseTypeArgs { gen_type, field } = args;
-
-    let mut replace_with: HashMap<usize, PatType> = HashMap::new();
+    let ConcretiseTypeArgs { gen_type, field } = &args;
 
     let gen_keys = gen_type.iter().map(|x| x.name.clone()).collect_vec();
     let field_keys = field.iter().map(|x| x.name.clone()).collect_vec();
 
-    // We are first doing a cartesian iterator over the gen types and within this a cartesion
+    // We are first preparing the new signature.
+    // The new signature replaces template types with the wrapper pointer types.
+    let new_signature = create_signature(&args, &sig);
+
+    let call_expr = create_function_call(&new_signature);
+
+    // We start preparing the output quote. This will contain the new signature
+
+    let output = quote! {
+       #vis #new_signature {
+           #vis #sig
+           #block
+
+           #call_expr
+
+       }
+
+
+
+    };
+
+    // We are now doing a cartesian iterator over the gen types and within this a cartesion
     // iterator over the field types.
 
     for gen_it in gen_type
@@ -196,8 +288,10 @@ pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> Toke
         }
     }
 
-    replace_with.insert(0, create_ptr_argument("ty", "MyWrapper"));
-    let sig = create_signature(&replace_with, &sig);
+    output.into()
+
+    // replace_with.insert(0, create_ptr_argument("ty", "MyWrapper"));
+    // let sig = create_signature(&replace_with, &sig);
 
     // let inputs = &mut sig.inputs;
 
@@ -222,14 +316,4 @@ pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> Toke
     //     ident: Ident::new("ptr", Span::call_site()),
     //     subpat: None,
     // }));
-
-    quote! {
-
-        pub fn test_macro() {
-            println!("Pattern {} ", stringify!(#sig));
-        }
-
-        # vis #sig # block
-    }
-    .into()
 }
