@@ -23,9 +23,9 @@ pub fn set_float<T: num::Float>(a: &mut MyStruct<T>, num: *const std::ffi::c_voi
 #[concretise_types(
     gen_type(name = "dtype", replace_with = ["f32, 64"]),
     gen_type(name = "bla", replace_with = ["bla1, blas2"]),
-    field(arg = 0, wrapper = "my_wrapper", is_mut, replace_with = ["MyType1<{{dtype}}>", "MyType2<{{dtype}}, {{bla}}>"]),
+    field(arg = 0, name = "wrap", wrapper = "my_wrapper", is_mut, replace_with = ["MyType1<{{dtype}}>", "MyType2<{{dtype}}, {{bla}}>"]),
 )]
-pub fn test_func(spam: &MyStruct<f64>) {}
+pub fn test_func<T: num>(spam: &MyStruct<T>) {}
 
 // pub fn print_float<T: num::Float + std::fmt::Display>(a: &MyStruct<T>) {
 //     println!("a: {}", a.a);
