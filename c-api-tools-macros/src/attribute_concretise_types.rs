@@ -28,6 +28,43 @@ fn replace_templates_with_types(names: &[String], templates: &[String]) -> Vec<S
     complete_types
 }
 
+fn create_if_let_condition(
+    args: &ConcretiseTypeArgs,
+    concrete_field_types: &[String],
+    sig: &Signature,
+    expr_call: &ExprCall,
+) -> proc_macro2::TokenStream {
+    let mut left_condition = "if let (".to_string();
+    let mut right_condition: String = "(".to_string();
+    for (field, concrete_field_type) in izip!(args.field.iter(), concrete_field_types.iter()) {
+        let arg = sig
+            .inputs
+            .get(field.arg)
+            .expect(&format!("Argument {} does not exist.", field.arg));
+
+        let ident = get_function_arg_ident(arg);
+        let mutability = function_arg_is_mutable(arg);
+
+        left_condition += &("Some(".to_owned() + &ident.to_string() + ",");
+        if mutability {
+            right_condition +=
+                &(ident.to_string() + ".downcast_mut::<" + &concrete_field_type + ">(),");
+        } else {
+            right_condition +=
+                &(ident.to_string() + ".downcast_ref::<" + &concrete_field_type + ">(),");
+        }
+    }
+
+    let condition = left_condition + ") = " + &right_condition + ")";
+    let condition = condition.parse::<proc_macro2::TokenStream>().unwrap();
+
+    quote! {(
+       #condition {
+           #expr_call
+       } else
+    ) }
+}
+
 fn create_ptr_argument(var_name: &str, ptr_type: &str) -> PatType {
     PatType {
         attrs: Default::default(),
@@ -233,16 +270,12 @@ pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> Toke
 
     // We start preparing the output quote. This will contain the new signature
 
-    let output = quote! {
+    let mut output = quote! {
        #vis #new_signature {
            #vis #sig
            #block
 
-           #call_expr
-
        }
-
-
 
     };
 
@@ -283,8 +316,7 @@ pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> Toke
             let complete_field_types =
                 replace_templates_with_types(&field_keys, &complete_field_types);
 
-            // We now have the completed types. We need to build the forward signature to the inner original function
-            // and the if block that controls the down-cast.
+            // We now have the complete field types. Let us build the corresponding if let statement.
         }
     }
 
