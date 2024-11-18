@@ -241,7 +241,6 @@ struct Field {
     arg: usize,
     name: String,
     wrapper: String,
-    is_mut: bool,
     replace_with: Vec<syn::LitStr>,
 }
 
