@@ -30,43 +30,19 @@ pub fn test_func<T: num::Float + Display>(spam: &MyStruct<T>) {
     println!("{}", spam.a);
 }
 
-// pub fn print_float<T: num::Float + std::fmt::Display>(a: &MyStruct<T>) {
-//     println!("a: {}", a.a);
-// }
-
-// #[no_mangle]
-// pub unsafe extern "C" fn c_set_float(ptr: *mut MyWrapper, num: *const std::ffi::c_void) {
-//     pub fn set_float<T: num::Float>(a: &mut MyStruct<T>, num: *const std::ffi::c_void) {
-//         let num = unsafe { *(num as *const T) };
-//         a.a = num;
-//     }
-
-//     if let Some(ptr) = my_wrapper_unwrap(ptr)
-//         .unwrap()
-//         .downcast_mut::<MyStruct<f32>>()
-//     {
-//         set_float(ptr, num)
-//     }
-// }
-
-// #[no_mangle]
-// pub unsafe extern "C" fn c_float_print(ptr: *mut MyWrapper) {
-//     pub fn print_float<T: num::Float + std::fmt::Display>(a: &MyStruct<T>) {
-//         println!("a: {}", a.a);
-//     }
-//     if let Some(a) = my_wrapper_unwrap(ptr)
-//         .unwrap()
-//         .downcast_mut::<MyStruct<f32>>()
-//     {
-//         print_float(a)
-//     }
-// }
-
 #[cfg(test)]
 mod test {
 
     use super::*;
 
     #[test]
-    fn test_fun() {}
+    fn test_fun() {
+        let wrapper = my_wrapper_create();
+
+        let unwrapped = unsafe { my_wrapper_unwrap(wrapper) }.unwrap();
+
+        *unwrapped = Box::new(MyStruct::<f64> { a: 5.0 });
+
+        unsafe { test_func(wrapper) };
+    }
 }

@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use darling::Error;
 use darling::{ast::NestedMeta, FromMeta};
 use itertools::{izip, Itertools};
@@ -7,10 +5,9 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
 use syn::punctuated::Punctuated;
-use syn::token::Mut;
 use syn::{
-    parse_macro_input, Expr, ExprCall, FnArg, LitStr, Pat, PatIdent, PatPath, Path, Signature,
-    Token, Type, TypePath, TypePtr,
+    parse_macro_input, Expr, ExprCall, FnArg, LitStr, Pat, PatIdent, Path, Signature, Token, Type,
+    TypePath, TypePtr,
 };
 use syn::{Ident, PatType};
 
@@ -34,35 +31,58 @@ fn create_if_let_condition(
     sig: &Signature,
     expr_call: &ExprCall,
 ) -> proc_macro2::TokenStream {
-    let mut left_condition = "if let (".to_string();
-    let mut right_condition: String = "(".to_string();
+    let mut left_condition: String = if args.field.len() > 1 {
+        "if let (".to_string()
+    } else {
+        "if let ".to_string()
+    };
+
+    let mut right_condition: String = if args.field.len() > 1 {
+        "(".to_string()
+    } else {
+        "".to_string()
+    };
+
+    let mut is_first = true;
     for (field, concrete_field_type) in izip!(args.field.iter(), concrete_field_types.iter()) {
+        if !is_first {
+            left_condition += ", ";
+            right_condition += ", ";
+        } else {
+            is_first = false;
+        }
+
         let arg = sig
             .inputs
             .get(field.arg)
-            .expect(&format!("Argument {} does not exist.", field.arg));
+            .unwrap_or_else(|| panic!("Argument {} does not exist.", field.arg));
 
         let ident = get_function_arg_ident(arg);
         let mutability = function_arg_is_mutable(arg);
 
-        left_condition += &("Some(".to_owned() + &ident.to_string() + ",");
+        left_condition += &("Some(".to_owned() + &ident.to_string() + ")");
         if mutability {
             right_condition +=
-                &(ident.to_string() + ".downcast_mut::<" + &concrete_field_type + ">(),");
+                &(ident.to_string() + ".downcast_mut::<" + concrete_field_type + ">()");
         } else {
             right_condition +=
-                &(ident.to_string() + ".downcast_ref::<" + &concrete_field_type + ">(),");
+                &(ident.to_string() + ".downcast_ref::<" + concrete_field_type + ">()");
         }
     }
 
-    let condition = left_condition + ") = " + &right_condition + ")";
+    if args.field.len() > 1 {
+        left_condition += ")";
+        right_condition += ")";
+    };
+
+    let condition = left_condition + " = " + &right_condition;
     let condition = condition.parse::<proc_macro2::TokenStream>().unwrap();
 
-    quote! {(
-       #condition {
-           #expr_call
-       } else
-    ) }
+    quote! {
+      #condition {
+          #expr_call
+      } else
+    }
 }
 
 fn create_ptr_argument(var_name: &str, ptr_type: &str) -> PatType {
@@ -133,7 +153,7 @@ fn create_signature(args: &ConcretiseTypeArgs, old_signature: &Signature) -> Sig
     for field in args.field.iter() {
         let arg = inputs
             .get_mut(field.arg)
-            .expect(&format!("Argument {} does not exist.", field.arg));
+            .unwrap_or_else(|| panic!("Argument {} does not exist.", field.arg));
 
         let ident = get_function_arg_ident(arg);
 
@@ -236,11 +256,7 @@ struct ConcretiseTypeArgs {
 
 pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> TokenStream {
     let syn::ItemFn {
-        attrs,
-        vis,
-        mut sig,
-        block,
-        ..
+        vis, sig, block, ..
     } = parse_macro_input!(item as syn::ItemFn);
 
     let attr_args = match NestedMeta::parse_meta_list(args.into()) {
@@ -270,17 +286,10 @@ pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> Toke
 
     // We start preparing the output quote. This will contain the new signature
 
-    let mut output = quote! {
-       #vis #new_signature {
-           #vis #sig
-           #block
-
-       }
-
-    };
-
     // We are now doing a cartesian iterator over the gen types and within this a cartesion
     // iterator over the field types.
+
+    let mut if_let_stream = quote! {};
 
     for gen_it in gen_type
         .iter()
@@ -317,12 +326,49 @@ pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> Toke
                 replace_templates_with_types(&field_keys, &complete_field_types);
 
             // We now have the complete field types. Let us build the corresponding if let statement.
+            //
+
+            let if_let = create_if_let_condition(&args, &complete_field_types, &sig, &call_expr);
+
+            if_let_stream = quote! {
+                #if_let_stream
+                #if_let
+
+            }
+
+            //
         }
     }
 
-    output.into()
+    // Before we can finish we need to unwrap the input pointers into their corresponding inner types.
 
+    let idents = sig
+        .inputs
+        .iter()
+        .map(|x| get_function_arg_ident(x).clone())
+        .collect_vec();
+
+    let output = quote! {
+       #vis #new_signature {
+           #vis #sig
+           #block
+
+           #(
+               let #idents = &(*#idents)._ptr;
+           )*
+
+           #if_let_stream
+           {
+               panic!("Unknown type.");
+           }
+
+       }
+
+    };
+
+    output.into()
     // replace_with.insert(0, create_ptr_argument("ty", "MyWrapper"));
+    //
     // let sig = create_signature(&replace_with, &sig);
 
     // let inputs = &mut sig.inputs;
