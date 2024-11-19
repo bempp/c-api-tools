@@ -11,6 +11,12 @@ use syn::{
 };
 use syn::{Ident, PatType};
 
+// Replaces a sequence of type templates with concrete types.
+// The way it proceeds is that later types in `templates` are only allowed to depend on
+// previous types. This is because the later types are replaced with the earlier types.
+// The array `names` contains the names associated with each type argument. If for example
+// `name` is [`dtype`, `spam_type`] and `templates` is [`f64`, `Spam<{{dtype}}`], then
+// the substituted version of `templates` will be [`f64`, `Spam<f64>`].
 fn replace_templates_with_types(names: &[String], templates: &[String]) -> Vec<String> {
     let ntypes = templates.len();
 
@@ -341,14 +347,21 @@ pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> Toke
 
     // Before we can finish we need to unwrap the input pointers into their corresponding inner types.
 
-    let idents = sig
-        .inputs
+    // let idents = sig
+    //     .inputs
+    //     .iter()
+    //     .map(|x| get_function_arg_ident(x).clone())
+    //     .collect_vec();
+
+    let idents = args
+        .field
         .iter()
-        .map(|x| get_function_arg_ident(x).clone())
+        .map(|x| get_function_arg_ident(sig.inputs.get(x.arg).unwrap()).clone())
         .collect_vec();
 
     let output = quote! {
-       #vis #new_signature {
+        #[no_mangle]
+        #vis #new_signature {
            #vis #sig
            #block
 

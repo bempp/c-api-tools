@@ -118,7 +118,7 @@ pub(crate) fn c_wrapper_impl(args: TokenStream, item: TokenStream) -> TokenStrea
         let name = syn::Ident::new((name.clone() + "_unwrap").as_str(), Span::call_site());
 
         output.extend(quote! {
-            pub unsafe extern "C" fn #name(ptr: *mut #ident) -> Option<&'static mut Box<dyn std::any::Any>> {
+            unsafe fn #name(ptr: *mut #ident) -> Option<&'static mut Box<dyn std::any::Any>> {
                 if ptr.is_null() {
                     return None;
                 }
