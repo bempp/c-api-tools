@@ -1,3 +1,7 @@
+//! Example project
+#![cfg_attr(feature = "strict", deny(warnings), deny(unused_crate_dependencies))]
+#![warn(missing_docs)]
+
 use std::fmt::Display;
 
 pub use c_api_tools::cfuncs;

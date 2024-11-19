@@ -1,4 +1,3 @@
-
 workspace = { members = ["c-api-tools-macros", "example_project"] }
 
 [features]
@@ -25,12 +24,8 @@ name = "c_api_tools"
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-itertools = "0.13.*"
 num = "0.4"
 c-api-tools-macros = { path = "./c-api-tools-macros" }
-
-[dev-dependencies]
-paste = "1.*"
 
 [build-dependencies]
 cbindgen = "0.27.0"

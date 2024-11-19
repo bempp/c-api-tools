@@ -5,20 +5,31 @@
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u8)]
 pub enum DType {
+    /// Float 32
     F32,
+    /// Float 64
     F64,
+    /// Complex 32
     C32,
+    /// Complex 64
     C64,
+    /// Unsigned int 8
     U8,
+    /// Unsigned int 32
     U32,
+    /// Unsigned int 64
     U64,
+    /// Int 8
     I8,
+    /// Int 32
     I32,
+    /// Int 64
     I64,
 }
 
-/// Return runtime numeric type information.
+/// Runtime numeric type information.
 pub trait DTypeIdentifier {
+    /// Return runtime numeric type information.
     fn dtype() -> DType;
 }
 
