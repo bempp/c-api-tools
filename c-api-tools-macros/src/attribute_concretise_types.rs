@@ -366,6 +366,7 @@ pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> Toke
            #block
 
            #(
+               assert!(! #idents.is_null());
                let #idents = &(*#idents)._ptr;
            )*
 
