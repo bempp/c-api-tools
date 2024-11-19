@@ -366,31 +366,4 @@ pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> Toke
     };
 
     output.into()
-    // replace_with.insert(0, create_ptr_argument("ty", "MyWrapper"));
-    //
-    // let sig = create_signature(&replace_with, &sig);
-
-    // let inputs = &mut sig.inputs;
-
-    // let input = inputs.get_mut(0).unwrap();
-
-    // let pat_ident = if let FnArg::Typed(pattern) = input {
-    //     if let Pat::Ident(pat) = pattern.pat.as_mut() {
-    //         pat
-    //     } else {
-    //         panic!();
-    //     }
-    // } else {
-    //     panic!();
-    // };
-
-    // pat_ident.ident = Ident::new("bar", Span::call_site());
-
-    // let pat: Box<Pat> = Box::new(Pat::Ident(PatIdent {
-    //     attrs: Vec::new(),
-    //     by_ref: None,
-    //     mutability: None,
-    //     ident: Ident::new("ptr", Span::call_site()),
-    //     subpat: None,
-    // }));
 }
