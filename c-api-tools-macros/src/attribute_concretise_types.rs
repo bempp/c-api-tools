@@ -349,35 +349,7 @@ pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> Toke
         }
     }
 
-    // Before we can finish we need to unwrap the input pointers into their corresponding inner types.
-
-    // let idents = sig
-    //     .inputs
-    //     .iter()
-    //     .map(|x| get_function_arg_ident(x).clone())
-    //     .collect_vec();
-
-    let mut unwrap_args = quote! {};
-
-    args.field
-        .iter()
-        .map(|x| sig.inputs.get(x.arg).unwrap())
-        .for_each(|arg| {
-            let ident = get_function_arg_ident(arg);
-            let mutability = function_arg_is_mutable(arg);
-
-            if mutability {
-                unwrap_args = quote! {
-                    #unwrap_args
-                    let #ident = #ident.as_mut().unwrap().inner_mut();
-                }
-            } else {
-                unwrap_args = quote! {
-                    #unwrap_args
-                    let #ident = #ident.as_ref().unwrap().inner();
-                }
-            }
-        });
+    // We now put everything together.
 
     let output = quote! {
         #[no_mangle]
