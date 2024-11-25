@@ -15,6 +15,43 @@ pub enum DType {
     I8,
     I32,
     I64,
+    Undefined,
+}
+
+impl DType {
+    pub fn is_real(&self) -> bool {
+        matches!(
+            self,
+            DType::F32
+                | DType::F64
+                | DType::U8
+                | DType::U32
+                | DType::U64
+                | DType::I8
+                | DType::I32
+                | DType::I64,
+        )
+    }
+
+    pub fn is_complex(&self) -> bool {
+        matches!(self, DType::C32 | DType::C64)
+    }
+
+    pub fn real_type(&self) -> DType {
+        match self {
+            DType::C32 => DType::F32,
+            DType::C64 => DType::F64,
+            _ => *self,
+        }
+    }
+
+    pub fn complex_type(&self) -> DType {
+        match self {
+            DType::F32 => DType::C32,
+            DType::F64 => DType::C64,
+            _ => DType::Undefined,
+        }
+    }
 }
 
 /// Return runtime numeric type information.

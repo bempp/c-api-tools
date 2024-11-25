@@ -83,6 +83,15 @@ pub(crate) fn c_wrapper_impl(args: TokenStream, item: TokenStream) -> TokenStrea
         #vis struct #ident {
             _ptr: Box<dyn std::any::Any>,
         }
+
+        impl #ident {
+            pub fn inner(&self) -> &Box<dyn std::any::Any> {
+                &self._ptr
+            }
+            pub fn inner_mut(&mut self) -> &mut Box<dyn std::any::Any> {
+                &mut self._ptr
+            }
+        }
     };
 
     if create {

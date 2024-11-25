@@ -68,11 +68,15 @@ fn create_if_let_condition(
 
         left_condition += &("Some(".to_owned() + &ident.to_string() + ")");
         if mutability {
-            right_condition +=
-                &(ident.to_string() + ".downcast_mut::<" + concrete_field_type + ">()");
+            right_condition += &(ident.to_string()
+                + ".as_mut().unwrap().inner_mut().downcast_mut::<"
+                + concrete_field_type
+                + ">()");
         } else {
-            right_condition +=
-                &(ident.to_string() + ".downcast_ref::<" + concrete_field_type + ">()");
+            right_condition += &(ident.to_string()
+                + ".as_ref().unwrap().inner().downcast_ref::<"
+                + concrete_field_type
+                + ">()");
         }
     }
 
@@ -353,11 +357,27 @@ pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> Toke
     //     .map(|x| get_function_arg_ident(x).clone())
     //     .collect_vec();
 
-    let idents = args
-        .field
+    let mut unwrap_args = quote! {};
+
+    args.field
         .iter()
-        .map(|x| get_function_arg_ident(sig.inputs.get(x.arg).unwrap()).clone())
-        .collect_vec();
+        .map(|x| sig.inputs.get(x.arg).unwrap())
+        .for_each(|arg| {
+            let ident = get_function_arg_ident(arg);
+            let mutability = function_arg_is_mutable(arg);
+
+            if mutability {
+                unwrap_args = quote! {
+                    #unwrap_args
+                    let #ident = #ident.as_mut().unwrap().inner_mut();
+                }
+            } else {
+                unwrap_args = quote! {
+                    #unwrap_args
+                    let #ident = #ident.as_ref().unwrap().inner();
+                }
+            }
+        });
 
     let output = quote! {
         #[no_mangle]
@@ -365,15 +385,11 @@ pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> Toke
            #vis #sig
            #block
 
-           #(
-               assert!(! #idents.is_null());
-               let #idents = &(*#idents)._ptr;
-           )*
 
            #if_let_stream
            {
-               panic!("Unknown type.");
-           }
+           panic!("Unknown type.");
+            }
 
        }
 
