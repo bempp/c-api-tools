@@ -265,7 +265,11 @@ struct ConcretiseTypeArgs {
 
 pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> TokenStream {
     let syn::ItemFn {
-        vis, sig, block, ..
+        vis,
+        sig,
+        block,
+        attrs,
+        ..
     } = parse_macro_input!(item as syn::ItemFn);
 
     let attr_args = match NestedMeta::parse_meta_list(args.into()) {
@@ -352,11 +356,11 @@ pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> Toke
     // We now put everything together.
 
     let output = quote! {
+        #( #attrs)*
         #[no_mangle]
         #vis #new_signature {
            #vis #sig
            #block
-
 
            #if_let_stream
            {

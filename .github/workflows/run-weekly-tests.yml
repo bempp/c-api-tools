@@ -1,0 +1,34 @@
+name: 🧪📅
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+
+jobs:
+  run-tests-rust:
+    name: Run Rust tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust-version: ["stable", "beta", "nightly"]
+    steps:
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust-version }}
+          components: rustfmt
+      - uses: actions/checkout@v3
+
+      - name: Build rust library
+        run: cargo build --features "strict"
+      - name: Build rust library in release mode
+        run: cargo build --release --features "strict"
+
+
+      - name: Run unit tests
+        run: cargo test --features "strict"
+      - name: Run unit tests in release mode
+        run: cargo test --release --features "strict"
+
+      - name: Build docs
+        run: cargo doc --features "strict" --no-deps
