@@ -25,6 +25,50 @@ pub enum DType {
     I32,
     /// Int 64
     I64,
+    /// Undefined type
+    Undefined,
+}
+
+impl DType {
+    /// Return true of type is real.
+    pub fn is_real(&self) -> bool {
+        matches!(
+            self,
+            DType::F32
+                | DType::F64
+                | DType::U8
+                | DType::U32
+                | DType::U64
+                | DType::I8
+                | DType::I32
+                | DType::I64,
+        )
+    }
+
+    /// Return true if type is complex.
+    pub fn is_complex(&self) -> bool {
+        matches!(self, DType::C32 | DType::C64)
+    }
+
+    /// Return the associated real type.
+    pub fn real_type(&self) -> DType {
+        match self {
+            DType::C32 => DType::F32,
+            DType::C64 => DType::F64,
+            _ => *self,
+        }
+    }
+
+    /// Return the associated complex type.
+    ///
+    /// If there is no associated complex type `DType::Undefined` is returned.
+    pub fn complex_type(&self) -> DType {
+        match self {
+            DType::F32 => DType::C32,
+            DType::F64 => DType::C64,
+            _ => DType::Undefined,
+        }
+    }
 }
 
 /// Runtime numeric type information.

@@ -83,12 +83,24 @@ pub(crate) fn c_wrapper_impl(args: TokenStream, item: TokenStream) -> TokenStrea
         #vis struct #ident {
             _ptr: Box<dyn std::any::Any>,
         }
+
+        impl #ident {
+            /// Return reference to wrapped pointer.
+            pub fn inner(&self) -> &Box<dyn std::any::Any> {
+                &self._ptr
+            }
+            /// Return mutable reference to wrapped pointer.
+            pub fn inner_mut(&mut self) -> &mut Box<dyn std::any::Any> {
+                &mut self._ptr
+            }
+        }
     };
 
     if create {
         let name = syn::Ident::new((name.clone() + "_create").as_str(), Span::call_site());
 
         output.extend(quote! {
+            /// Create a new instance of the wrapper.
             #[no_mangle]
             pub extern "C" fn #name() -> *mut #ident {
                 let obj = #ident { _ptr: Box::new(()) };
@@ -102,6 +114,7 @@ pub(crate) fn c_wrapper_impl(args: TokenStream, item: TokenStream) -> TokenStrea
         let name = syn::Ident::new((name.clone() + "_free").as_str(), Span::call_site());
 
         output.extend(quote! {
+            /// Free the instance of the wrapper.
             #[no_mangle]
             pub unsafe extern "C" fn #name(ptr: *mut #ident) {
                 if ptr.is_null() {
@@ -118,6 +131,7 @@ pub(crate) fn c_wrapper_impl(args: TokenStream, item: TokenStream) -> TokenStrea
         let name = syn::Ident::new((name.clone() + "_unwrap").as_str(), Span::call_site());
 
         output.extend(quote! {
+            /// Unwrap the instance of the wrapper.
             unsafe fn #name(ptr: *mut #ident) -> Option<&'static mut Box<dyn std::any::Any>> {
                 if ptr.is_null() {
                     return None;

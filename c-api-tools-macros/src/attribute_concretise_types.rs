@@ -68,11 +68,15 @@ fn create_if_let_condition(
 
         left_condition += &("Some(".to_owned() + &ident.to_string() + ")");
         if mutability {
-            right_condition +=
-                &(ident.to_string() + ".downcast_mut::<" + concrete_field_type + ">()");
+            right_condition += &(ident.to_string()
+                + ".as_mut().unwrap().inner_mut().downcast_mut::<"
+                + concrete_field_type
+                + ">()");
         } else {
-            right_condition +=
-                &(ident.to_string() + ".downcast_ref::<" + concrete_field_type + ">()");
+            right_condition += &(ident.to_string()
+                + ".as_ref().unwrap().inner().downcast_ref::<"
+                + concrete_field_type
+                + ">()");
         }
     }
 
@@ -261,7 +265,11 @@ struct ConcretiseTypeArgs {
 
 pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> TokenStream {
     let syn::ItemFn {
-        vis, sig, block, ..
+        vis,
+        sig,
+        block,
+        attrs,
+        ..
     } = parse_macro_input!(item as syn::ItemFn);
 
     let attr_args = match NestedMeta::parse_meta_list(args.into()) {
@@ -345,35 +353,19 @@ pub(crate) fn concretise_type_impl(args: TokenStream, item: TokenStream) -> Toke
         }
     }
 
-    // Before we can finish we need to unwrap the input pointers into their corresponding inner types.
-
-    // let idents = sig
-    //     .inputs
-    //     .iter()
-    //     .map(|x| get_function_arg_ident(x).clone())
-    //     .collect_vec();
-
-    let idents = args
-        .field
-        .iter()
-        .map(|x| get_function_arg_ident(sig.inputs.get(x.arg).unwrap()).clone())
-        .collect_vec();
+    // We now put everything together.
 
     let output = quote! {
+        #( #attrs)*
         #[no_mangle]
         #vis #new_signature {
            #vis #sig
            #block
 
-           #(
-               assert!(! #idents.is_null());
-               let #idents = &(*#idents)._ptr;
-           )*
-
            #if_let_stream
            {
-               panic!("Unknown type.");
-           }
+           panic!("Unknown type.");
+            }
 
        }
 
