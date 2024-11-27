@@ -1,3 +1,3 @@
-# ndelement-macros
+# c-api-tools-macros
 
-Macros for the `ndelement` crate.
+Macros for the `c-api-tools` crate.
