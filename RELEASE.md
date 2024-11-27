@@ -49,6 +49,6 @@ To make a new release of bempp, follow the following steps:
     unsuitable for use.
 
 8) Open a pull request to `main` to update the version numbers in `Cargo.toml` and `c-api-tools-macros/Cargo.toml`
-   to `[x].[y].[z]-dev`
+   to `[x].[y].[z]-dev`, and to change the `c-api-tools-macros` dependency in `Cargo.toml` to `{ path = "c-api-tools-macros" }`
 
 9) Add the release to the next issue of [Scientific Computing in Rust Monthly](https://github.com/rust-scicomp/scientific-computing-in-rust-monthly)
