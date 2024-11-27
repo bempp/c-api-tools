@@ -28,12 +28,25 @@ To make a new release of bempp, follow the following steps:
    In the "Describe this release" box, you should bullet point the main changes since the last
    release.
 
-6) Run `cargo publish --dry-run`, then run `cargo package --list` and
-   check that no unwanted extras have been included in the release.
+6) In the folder `c-api-tools-macros`:
 
-7) If everything is working as expected, run `cargo publish`. This will push the new version to
-   crates.io. Note: this cannot be undone, but you can use `cargo yank` to mark a version as
-   unsuitable for use.
+6a) Run `cargo publish --dry-run`, then run `cargo package --list` and
+    check that no unwanted extras have been included in the release.
+
+6b) If everything is working as expected, run `cargo publish`. This will push the new version to
+    crates.io. Note: this cannot be undone, but you can use `cargo yank` to mark a version as
+    unsuitable for use.
+
+7) In the root folder:
+
+7a) Update the `c-api-tools-macros` dependency in `Cargo.toml` to `{ version = "[x].[y].[z]" }`.
+
+7b) Run `cargo publish --dry-run`, then run `cargo package --list` and
+    check that no unwanted extras have been included in the release.
+
+7c) If everything is working as expected, run `cargo publish`. This will push the new version to
+    crates.io. Note: this cannot be undone, but you can use `cargo yank` to mark a version as
+    unsuitable for use.
 
 8) Open a pull request to `main` to update the version numbers in `Cargo.toml` and `c-api-tools-macros/Cargo.toml`
    to `[x].[y].[z]-dev`
