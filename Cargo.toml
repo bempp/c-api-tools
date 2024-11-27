@@ -25,7 +25,7 @@ crate-type = ["lib", "cdylib"]
 
 [dependencies]
 num = "0.4"
-c-api-tools-macros = { path = "./c-api-tools-macros" }
+c-api-tools-macros = { version = "0.1.0" }
 
 [build-dependencies]
 cbindgen = "0.27.0"
