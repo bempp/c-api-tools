@@ -3,7 +3,7 @@ strict = []
 
 [package]
 name = "c-api-tools-macros"
-version = "0.0.0-dev"
+version = "0.1.0"
 edition = "2021"
 authors = [
     "Matthew Scroggs <rust@mscroggs.co.uk>",
