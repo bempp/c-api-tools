@@ -18,4 +18,7 @@ struct MyWrapper *my_wrapper_create(void);
  */
 void my_wrapper_free(struct MyWrapper *ptr);
 
+/**
+ * Test function.
+ */
 void test_func(struct MyWrapper *spam);

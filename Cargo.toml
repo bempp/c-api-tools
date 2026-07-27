@@ -28,7 +28,7 @@ num = "0.4"
 c-api-tools-macros = { path = "c-api-tools-macros" }
 
 [build-dependencies]
-cbindgen = "0.27.0"
+cbindgen = "0.29.4"
 
 [package.metadata.docs.rs]
 cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]

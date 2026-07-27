@@ -22,8 +22,8 @@ name = "c_api_tools_macros"
 proc-macro = true
 
 [dependencies]
-syn = ">=2.0.87"
+syn = { version = "2", features = ["full"]}
 proc-macro2 = "1.0"
-darling = "0.20"
+darling = "0.23"
 quote = "1.0"
-itertools = "0.13"
+itertools = "0.15"

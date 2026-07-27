@@ -16,4 +16,4 @@ c-api-tools = { path = "../" }
 num = "0.4"
 
 [build-dependencies]
-cbindgen = "0.27"
+cbindgen = "0.29"
